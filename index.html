@@ -397,7 +397,7 @@ function saveToServer() {
     btn.style.background = '#e94560';
     btn.disabled = false;
     console.error('保存失败:', err.message);
-    alert('保存失败: ' + err.message + '\n\n请确认：\n1. Worker 已部署且 SAVE_API_URL 配置正确\n2. GitHub Token 未过期且有仓库写入权限');
+    alert('保存失败: ' + err.message);
     setTimeout(function() {
       btn.textContent = originalText;
       btn.style.background = '';
