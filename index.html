@@ -353,17 +353,12 @@ function onLevelChange() {
 
 // ========== 导出 ==========
 function exportJSON() {
-  var data = {
-    mapName: mapConfig.name,
-    imageWidth: mapConfig.imageWidth,
-    imageHeight: mapConfig.imageHeight,
-    markers: markers
-  };
+  var data = { markers: markers };
   var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = mapConfig.name + '_markers.json';
+  a.download = 'markers.json';
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -386,9 +381,6 @@ function handleImport(event) {
         if (!m.id) m.id = 'imp_' + Date.now() + '_' + i;
         return m;
       });
-      if (data.mapName) mapConfig.name = data.mapName;
-      if (data.imageWidth) mapConfig.imageWidth = data.imageWidth;
-      if (data.imageHeight) mapConfig.imageHeight = data.imageHeight;
       var levels = markers.map(function(m) { return m.level; });
       var minLv = Math.min.apply(null, levels);
       var maxLv = Math.max.apply(null, levels);
@@ -401,7 +393,6 @@ function handleImport(event) {
       document.getElementById('levelMinLabel').textContent = 'Lv.' + minLv;
       document.getElementById('levelMaxLabel').textContent = 'Lv.' + maxLv;
       applyFilters();
-      document.getElementById('mapSelect').value = mapConfig.name;
     } catch (err) {
       alert('文件格式不正确：' + err.message);
     }
@@ -413,11 +404,14 @@ function handleImport(event) {
 // ========== 地图切换 ==========
 function switchMap(mapName) {
   mapConfig.name = mapName;
-  markers = [];
-  markerLayer.clearLayers();
-  allLayers = {};
-  mapInstance.remove();
-  loadDefaultData(mapName);
+  // 只更换底图，不触碰标记数据
+  mapInstance.eachLayer(function(layer) {
+    if (layer instanceof L.ImageOverlay) mapInstance.removeLayer(layer);
+  });
+  var bounds = [[0, 0], [mapConfig.imageHeight, mapConfig.imageWidth]];
+  L.imageOverlay(mapConfig.name + '.jpg', bounds).addTo(mapInstance);
+  document.getElementById('statusbar').textContent =
+    '共 ' + markers.length + ' 个标记点 | 地图: ' + mapConfig.name;
 }
 
 // ========== 地图初始化 ==========
@@ -567,8 +561,8 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ========== 启动 ==========
-function loadDefaultData(mapName) {
-  fetch('data/' + mapName + '.json')
+function loadDefaultData() {
+  fetch('data/markers.json')
     .then(function(res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -593,11 +587,11 @@ function loadDefaultData(mapName) {
       initMap();
     })
     .catch(function() {
-      initMap();  // 数据加载失败时仍显示空地图
+      initMap();
     });
 }
 
-loadDefaultData(mapConfig.name);
+loadDefaultData();
 </script>
 </body>
 </html>
