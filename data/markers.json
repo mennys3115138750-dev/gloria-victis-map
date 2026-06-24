@@ -17,6 +17,14 @@
       "type": "wood",
       "level": 1,
       "label": "test1"
+    },
+    {
+      "id": "m_1782310114995_rbbda",
+      "x": 518,
+      "y": 177,
+      "type": "ore",
+      "level": 3,
+      "label": "铁矿"
     }
   ]
 }
