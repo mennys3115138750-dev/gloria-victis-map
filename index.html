@@ -442,11 +442,7 @@ function handleImport(event) {
       var levels = markers.map(function(m) { return m.level; });
       var minLv = Math.min.apply(null, levels);
       var maxLv = Math.max.apply(null, levels);
-      document.getElementById('levelMin').min = minLv;
-      document.getElementById('levelMin').max = maxLv;
       document.getElementById('levelMin').value = minLv;
-      document.getElementById('levelMax').min = minLv;
-      document.getElementById('levelMax').max = maxLv;
       document.getElementById('levelMax').value = maxLv;
       document.getElementById('levelMinLabel').textContent = 'Lv.' + minLv;
       document.getElementById('levelMaxLabel').textContent = 'Lv.' + maxLv;
@@ -634,11 +630,8 @@ function loadDefaultData() {
       var levels = markers.map(function(m) { return m.level; });
       var minLv = Math.min.apply(null, levels);
       var maxLv = Math.max.apply(null, levels);
-      document.getElementById('levelMin').min = minLv;
-      document.getElementById('levelMin').max = maxLv;
+      // 滑块边界固定 1-10，当前值设为数据实际范围（显示全部已有标记）
       document.getElementById('levelMin').value = minLv;
-      document.getElementById('levelMax').min = minLv;
-      document.getElementById('levelMax').max = maxLv;
       document.getElementById('levelMax').value = maxLv;
       document.getElementById('levelMinLabel').textContent = 'Lv.' + minLv;
       document.getElementById('levelMaxLabel').textContent = 'Lv.' + maxLv;
