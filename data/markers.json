@@ -2,18 +2,6 @@
   "imageWidth": 943,
   "imageHeight": 766,
   "markers": [
-    { "id": "m1", "x": 200, "y": 150, "type": "herb", "level": 1, "label": "银叶草" },
-    { "id": "m2", "x": 320, "y": 600, "type": "ore", "level": 3, "label": "金矿" },
-    { "id": "m3", "x": 512, "y": 320, "type": "ore", "level": 2, "label": "铁矿" },
-    { "id": "m4", "x": 600, "y": 180, "type": "wood", "level": 1, "label": "松木" },
-    { "id": "m5", "x": 680, "y": 410, "type": "ore", "level": 2, "label": "铜矿" },
-    { "id": "m6", "x": 750, "y": 550, "type": "wood", "level": 2, "label": "橡木" },
-    { "id": "m7", "x": 410, "y": 280, "type": "herb", "level": 3, "label": "金棘草" },
-    { "id": "m8", "x": 880, "y": 700, "type": "ore", "level": 1, "label": "铜矿" },
-    { "id": "m9", "x": 100, "y": 400, "type": "herb", "level": 2, "label": "魔皇草" },
-    { "id": "m10", "x": 500, "y": 500, "type": "wood", "level": 3, "label": "铁木" },
-    { "id": "m11", "x": 300, "y": 200, "type": "ore", "level": 2, "label": "铁矿" },
-    { "id": "m12", "x": 450, "y": 350, "type": "herb", "level": 1, "label": "宁神花" },
-    { "id": "m13", "x": 700, "y": 500, "type": "wood", "level": 3, "label": "铁木" }
+    { "id": "m1", "x": 200, "y": 150, "type": "herb", "level": 1, "label": "test" },
   ]
 }
