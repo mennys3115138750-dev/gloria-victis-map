@@ -2,6 +2,6 @@
   "imageWidth": 943,
   "imageHeight": 766,
   "markers": [
-    { "id": "m1", "x": 200, "y": 150, "type": "herb", "level": 1, "label": "test" },
+    { "id": "m1", "x": 200, "y": 150, "type": "herb", "level": 1, "label": "test" }
   ]
 }

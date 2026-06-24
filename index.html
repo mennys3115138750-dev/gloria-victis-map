@@ -149,6 +149,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
     <option value="map2">map2 — 无路线</option>
   </select>
   <span class="spacer"></span>
+  <button id="saveBtn" class="export-btn" onclick="saveToServer()">保存到服务器</button>
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
   <button onclick="document.getElementById('importFile').click()">导入 JSON</button>
   <button class="export-btn" onclick="exportJSON()">导出 JSON</button>
@@ -351,9 +352,66 @@ function onLevelChange() {
   applyFilters();
 }
 
+// ========== 云端保存配置 ==========
+// 部署 Worker 后，将下方 URL 替换为你的 Worker 地址
+var SAVE_API_URL = 'https://gv-map-mennys.mennys3115138750.workers.dev/api/save';
+
+// ========== 保存到服务器 ==========
+function saveToServer() {
+  var btn = document.getElementById('saveBtn');
+  var originalText = btn.textContent;
+  btn.textContent = '保存中...';
+  btn.disabled = true;
+
+  var payload = {
+    imageWidth: mapConfig.imageWidth,
+    imageHeight: mapConfig.imageHeight,
+    markers: markers
+  };
+
+  fetch(SAVE_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(function(res) {
+    if (!res.ok) {
+      return res.json().then(function(err) {
+        throw new Error(err.message || 'HTTP ' + res.status);
+      });
+    }
+    return res.json();
+  })
+  .then(function(result) {
+    btn.textContent = '✓ 已保存';
+    btn.style.background = '#4caf50';
+    console.log('保存成功', result.commit);
+    setTimeout(function() {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      btn.style.background = '';
+    }, 2000);
+  })
+  .catch(function(err) {
+    btn.textContent = '保存失败';
+    btn.style.background = '#e94560';
+    btn.disabled = false;
+    console.error('保存失败:', err.message);
+    alert('保存失败: ' + err.message + '\n\n请确认：\n1. Worker 已部署且 SAVE_API_URL 配置正确\n2. GitHub Token 未过期且有仓库写入权限');
+    setTimeout(function() {
+      btn.textContent = originalText;
+      btn.style.background = '';
+    }, 3000);
+  });
+}
+
 // ========== 导出 ==========
 function exportJSON() {
-  var data = { markers: markers };
+  var data = {
+    imageWidth: mapConfig.imageWidth,
+    imageHeight: mapConfig.imageHeight,
+    markers: markers
+  };
   var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
