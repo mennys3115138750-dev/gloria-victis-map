@@ -169,11 +169,11 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
     <h3>等级范围</h3>
     <div class="level-row">
       <span id="levelMinLabel">Lv.1</span>
-      <input type="range" id="levelMin" min="1" max="3" value="1" oninput="onLevelChange()">
+      <input type="range" id="levelMin" min="1" max="5" value="1" oninput="onLevelChange()">
     </div>
     <div class="level-row">
       <span id="levelMaxLabel">Lv.3</span>
-      <input type="range" id="levelMax" min="1" max="3" value="3" oninput="onLevelChange()">
+      <input type="range" id="levelMax" min="1" max="5" value="3" oninput="onLevelChange()">
     </div>
   </div>
 
@@ -441,11 +441,10 @@ function handleImport(event) {
       });
       var levels = markers.map(function(m) { return m.level; });
       var minLv = Math.min.apply(null, levels);
-      var maxLv = Math.max.apply(null, levels);
       document.getElementById('levelMin').value = minLv;
-      document.getElementById('levelMax').value = maxLv;
+      document.getElementById('levelMax').value = document.getElementById('levelMax').max;
       document.getElementById('levelMinLabel').textContent = 'Lv.' + minLv;
-      document.getElementById('levelMaxLabel').textContent = 'Lv.' + maxLv;
+      document.getElementById('levelMaxLabel').textContent = 'Lv.' + document.getElementById('levelMax').max;
       applyFilters();
     } catch (err) {
       alert('文件格式不正确：' + err.message);
@@ -629,12 +628,11 @@ function loadDefaultData() {
       if (data.imageHeight) mapConfig.imageHeight = data.imageHeight;
       var levels = markers.map(function(m) { return m.level; });
       var minLv = Math.min.apply(null, levels);
-      var maxLv = Math.max.apply(null, levels);
-      // 滑块边界固定 1-10，当前值设为数据实际范围（显示全部已有标记）
+      // 下限取数据最小值，上限取滑块最大范围（方便后续创建更高等级标记）
       document.getElementById('levelMin').value = minLv;
-      document.getElementById('levelMax').value = maxLv;
+      document.getElementById('levelMax').value = document.getElementById('levelMax').max;
       document.getElementById('levelMinLabel').textContent = 'Lv.' + minLv;
-      document.getElementById('levelMaxLabel').textContent = 'Lv.' + maxLv;
+      document.getElementById('levelMaxLabel').textContent = 'Lv.' + document.getElementById('levelMax').max;
       initMap();
     })
     .catch(function() {
