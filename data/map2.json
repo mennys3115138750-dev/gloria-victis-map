@@ -1,0 +1,10 @@
+{
+  "mapName": "map2",
+  "imageWidth": 943,
+  "imageHeight": 766,
+  "markers": [
+    { "id": "m1", "x": 300, "y": 200, "type": "ore", "level": 2, "label": "铁矿" },
+    { "id": "m2", "x": 450, "y": 350, "type": "herb", "level": 1, "label": "宁神花" },
+    { "id": "m3", "x": 700, "y": 500, "type": "wood", "level": 3, "label": "铁木" }
+  ]
+}

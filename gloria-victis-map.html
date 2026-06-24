@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gloria Victis 资源地图</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex; flex-direction: column; height: 100vh; background: #1a1a2e; }
+
+.toolbar {
+  display: flex; align-items: center; gap: 12px; padding: 6px 14px;
+  background: #16213e; color: #e0e0e0; border-bottom: 1px solid #0f3460; font-size: 14px;
+}
+.toolbar .title { font-size: 16px; font-weight: bold; color: #fff; }
+.toolbar .spacer { flex: 1; }
+
+.main { display: flex; flex: 1; overflow: hidden; }
+
+.map-container { flex: 1; position: relative; }
+#map { width: 100%; height: 100%; background: #0a0a15; }
+
+.custom-marker {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff;
+  box-shadow: 0 0 6px rgba(0,0,0,0.5); cursor: pointer;
+}
+.custom-marker.ore { background: #ff6b35; }
+.custom-marker.herb { background: #4caf50; }
+.custom-marker.wood { background: #8d6e63; }
+
+.leaflet-popup-content-wrapper {
+  background: #16213e; color: #e0e0e0; border-radius: 6px;
+}
+.leaflet-popup-tip { background: #16213e; }
+
+.sidebar {
+  width: 240px; background: #16213e; color: #e0e0e0; padding: 14px;
+  display: flex; flex-direction: column; gap: 14px;
+  border-right: 1px solid #0f3460; overflow-y: auto; font-size: 13px;
+}
+.sidebar h3 {
+  font-size: 12px; color: #a0a0b0; text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 4px;
+}
+.filter-group label {
+  display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer;
+}
+.filter-group label:hover { color: #fff; }
+.filter-group input[type="checkbox"] { accent-color: #e94560; }
+.type-dot {
+  display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+}
+.type-dot.ore { background: #ff6b35; }
+.type-dot.herb { background: #4caf50; }
+.type-dot.wood { background: #8d6e63; }
+
+.level-row { display: flex; align-items: center; gap: 8px; }
+.level-row input[type="range"] { flex: 1; accent-color: #e94560; }
+.level-row span { font-size: 11px; color: #a0a0b0; min-width: 32px; text-align: center; }
+
+.marker-list { flex: 1; overflow-y: auto; min-height: 0; }
+.marker-item {
+  display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+  border-radius: 4px; cursor: pointer; font-size: 12px;
+}
+.marker-item:hover { background: #1a1a2e; }
+.marker-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.marker-item .dot.ore { background: #ff6b35; }
+.marker-item .dot.herb { background: #4caf50; }
+.marker-item .dot.wood { background: #8d6e63; }
+.marker-item .info { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.marker-item .coords { margin-left: auto; font-size: 10px; color: #6a6a7a; flex-shrink: 0; }
+
+.statusbar {
+  padding: 4px 14px; background: #16213e; color: #7a7a8a;
+  font-size: 12px; border-top: 1px solid #0f3460;
+}
+.toolbar select, .toolbar button {
+  padding: 5px 12px; border-radius: 4px; border: 1px solid #0f3460;
+  background: #1a1a2e; color: #e0e0e0; cursor: pointer; font-size: 13px;
+}
+.toolbar button:hover { background: #0f3460; }
+.toolbar button.export-btn { background: #e94560; border-color: #e94560; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="title">Gloria Victis 资源地图</span>
+  <select id="mapSelect" onchange="switchMap(this.value)">
+    <option value="map1">map1 — 主大陆</option>
+    <option value="map2">map2 — 扩展区域</option>
+  </select>
+  <span class="spacer"></span>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
+  <button onclick="document.getElementById('importFile').click()">导入 JSON</button>
+  <button class="export-btn" onclick="exportJSON()">导出 JSON</button>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+  <div>
+    <h3>资源类型</h3>
+    <div class="filter-group" id="typeFilters">
+      <label><input type="checkbox" value="ore" checked onchange="applyFilters()"> <span class="type-dot ore"></span> 矿石</label>
+      <label><input type="checkbox" value="herb" checked onchange="applyFilters()"> <span class="type-dot herb"></span> 草药</label>
+      <label><input type="checkbox" value="wood" checked onchange="applyFilters()"> <span class="type-dot wood"></span> 木材</label>
+    </div>
+  </div>
+  <div>
+    <h3>等级范围</h3>
+    <div class="level-row">
+      <span id="levelMinLabel">Lv.1</span>
+      <input type="range" id="levelMin" min="1" max="3" value="1" oninput="onLevelChange()">
+    </div>
+    <div class="level-row">
+      <span id="levelMaxLabel">Lv.3</span>
+      <input type="range" id="levelMax" min="1" max="3" value="3" oninput="onLevelChange()">
+    </div>
+  </div>
+
+<h3>标记列表 <span id="markerCount" style="color:#7a7a8a;font-weight:normal">(10)</span></h3>
+<div class="marker-list" id="markerList"></div>
+</div>
+  <div class="map-container">
+    <div id="map"></div>
+  </div>
+</div>
+
+<div class="statusbar" id="statusbar">共 10 个标记点 | 地图: map1</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ========== 数据 ==========
+var mapConfig = { name: 'map1', imageWidth: 943, imageHeight: 766 };
+
+var markers = [
+  { id: 'm1', x: 200, y: 150, type: 'herb', level: 1, label: '银叶草' },
+  { id: 'm2', x: 320, y: 600, type: 'ore', level: 3, label: '金矿' },
+  { id: 'm3', x: 512, y: 320, type: 'ore', level: 2, label: '铁矿' },
+  { id: 'm4', x: 600, y: 180, type: 'wood', level: 1, label: '松木' },
+  { id: 'm5', x: 680, y: 410, type: 'ore', level: 2, label: '铜矿' },
+  { id: 'm6', x: 750, y: 550, type: 'wood', level: 2, label: '橡木' },
+  { id: 'm7', x: 410, y: 280, type: 'herb', level: 3, label: '金棘草' },
+  { id: 'm8', x: 880, y: 700, type: 'ore', level: 1, label: '铜矿' },
+  { id: 'm9', x: 100, y: 400, type: 'herb', level: 2, label: '魔皇草' },
+  { id: 'm10', x: 500, y: 500, type: 'wood', level: 3, label: '铁木' }
+];
+
+var TYPE_COLORS = { ore: '#ff6b35', herb: '#4caf50', wood: '#8d6e63' };
+var TYPE_NAMES = { ore: '矿石', herb: '草药', wood: '木材' };
+
+var mapInstance = null;
+var markerLayer = null;
+var allLayers = {};  // id -> L.marker 映射
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ========== 标记点创建与渲染 ==========
+function createIcon(type) {
+  var validTypes = ['ore', 'herb', 'wood'];
+  if (validTypes.indexOf(type) === -1) type = 'ore';
+  return L.divIcon({
+    className: '',
+    html: '<div class="custom-marker ' + type + '"></div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -11]
+  });
+}
+
+function renderMarkers(filteredList) {
+  markerLayer.clearLayers();
+  allLayers = {};
+  var list = filteredList || markers;
+
+  list.forEach(function(m) {
+    var icon = createIcon(m.type);
+    var marker = L.marker([m.y, m.x], { icon: icon })
+      .bindPopup(
+        '<b>' + escapeHtml(m.label) + '</b><br>' +
+        '类型: ' + TYPE_NAMES[m.type] + '<br>' +
+        '坐标: (' + m.x + ', ' + m.y + ')<br>' +
+        '等级: Lv.' + m.level
+      );
+    markerLayer.addLayer(marker);
+    allLayers[m.id] = marker;
+  });
+
+  // 更新标记列表
+  var listEl = document.getElementById('markerList');
+  listEl.innerHTML = '';
+  list.forEach(function(m) {
+    var div = document.createElement('div');
+    div.className = 'marker-item';
+    div.innerHTML = '<span class="dot ' + (['ore','herb','wood'].indexOf(m.type) !== -1 ? m.type : 'ore') + '"></span>' +
+      '<span class="info">' + escapeHtml(m.label) + '</span>' +
+      '<span class="coords">(' + m.x + ', ' + m.y + ')</span>';
+    div.onclick = function() {
+      mapInstance.setView([m.y, m.x], Math.max(mapInstance.getZoom(), 2));
+      allLayers[m.id].openPopup();
+    };
+    listEl.appendChild(div);
+  });
+
+  if (list.length === 0) {
+    var emptyDiv = document.createElement('div');
+    emptyDiv.className = 'marker-item';
+    emptyDiv.style.cursor = 'default';
+    emptyDiv.style.color = '#6a6a7a';
+    emptyDiv.textContent = '没有匹配的标记';
+    listEl.appendChild(emptyDiv);
+  }
+
+  // 更新计数和状态栏
+  document.getElementById('markerCount').textContent = '(' + list.length + ')';
+  document.getElementById('statusbar').textContent =
+    '共 ' + list.length + ' 个标记点 | 地图: ' + mapConfig.name;
+}
+
+// ========== 筛选 ==========
+function getActiveTypes() {
+  var checks = document.querySelectorAll('#typeFilters input[type=checkbox]');
+  var types = [];
+  checks.forEach(function(cb) { if (cb.checked) types.push(cb.value); });
+  return types;
+}
+
+function getLevelRange() {
+  var min = parseInt(document.getElementById('levelMin').value);
+  var max = parseInt(document.getElementById('levelMax').value);
+  return [Math.min(min, max), Math.max(min, max)];
+}
+
+function applyFilters() {
+  var types = getActiveTypes();
+  var range = getLevelRange();
+  var filtered = markers.filter(function(m) {
+    return types.indexOf(m.type) !== -1 && m.level >= range[0] && m.level <= range[1];
+  });
+  renderMarkers(filtered);
+}
+
+function onLevelChange() {
+  var min = parseInt(document.getElementById('levelMin').value);
+  var max = parseInt(document.getElementById('levelMax').value);
+  document.getElementById('levelMinLabel').textContent = 'Lv.' + Math.min(min, max);
+  document.getElementById('levelMaxLabel').textContent = 'Lv.' + Math.max(min, max);
+  applyFilters();
+}
+
+// ========== 导出 ==========
+function exportJSON() {
+  var data = {
+    mapName: mapConfig.name,
+    imageWidth: mapConfig.imageWidth,
+    imageHeight: mapConfig.imageHeight,
+    markers: markers
+  };
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = mapConfig.name + '_markers.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ========== 导入 ==========
+function handleImport(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (!data.markers || !Array.isArray(data.markers)) throw new Error('缺少 markers 数组');
+      markers = data.markers.filter(function(m, i) {
+        return m && typeof m.x === 'number' && typeof m.y === 'number' &&
+               ['ore', 'herb', 'wood'].indexOf(m.type) !== -1 &&
+               typeof m.level === 'number' && m.level >= 1 &&
+               typeof m.label === 'string';
+      }).map(function(m, i) {
+        if (!m.id) m.id = 'imp_' + Date.now() + '_' + i;
+        return m;
+      });
+      if (data.mapName) mapConfig.name = data.mapName;
+      if (data.imageWidth) mapConfig.imageWidth = data.imageWidth;
+      if (data.imageHeight) mapConfig.imageHeight = data.imageHeight;
+      var levels = markers.map(function(m) { return m.level; });
+      var minLv = Math.min.apply(null, levels);
+      var maxLv = Math.max.apply(null, levels);
+      document.getElementById('levelMin').min = minLv;
+      document.getElementById('levelMin').max = maxLv;
+      document.getElementById('levelMin').value = minLv;
+      document.getElementById('levelMax').min = minLv;
+      document.getElementById('levelMax').max = maxLv;
+      document.getElementById('levelMax').value = maxLv;
+      document.getElementById('levelMinLabel').textContent = 'Lv.' + minLv;
+      document.getElementById('levelMaxLabel').textContent = 'Lv.' + maxLv;
+      applyFilters();
+      document.getElementById('mapSelect').value = mapConfig.name;
+    } catch (err) {
+      alert('文件格式不正确：' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ========== 地图切换 ==========
+function switchMap(mapName) {
+  mapConfig.name = mapName;
+  markers = [];
+  markerLayer.clearLayers();
+  allLayers = {};
+  mapInstance.remove();
+  loadDefaultData(mapName);
+}
+
+// ========== 地图初始化 ==========
+function initMap() {
+  mapInstance = L.map('map', {
+    crs: L.CRS.Simple,
+    maxZoom: 5,
+    minZoom: -2,
+    zoomSnap: 0.5,
+    zoomDelta: 0.5,
+    attributionControl: false
+  });
+  var bounds = [[0, 0], [mapConfig.imageHeight, mapConfig.imageWidth]];
+  L.imageOverlay(mapConfig.name + '.jpg', bounds).addTo(mapInstance);
+  mapInstance.fitBounds(bounds);
+  markerLayer = L.layerGroup().addTo(mapInstance);
+  renderMarkers();
+}
+
+// ========== 启动 ==========
+function loadDefaultData(mapName) {
+  fetch('data/' + mapName + '.json')
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function(data) {
+      if (data.markers && Array.isArray(data.markers)) {
+        markers = data.markers;
+      }
+      if (data.imageWidth) mapConfig.imageWidth = data.imageWidth;
+      if (data.imageHeight) mapConfig.imageHeight = data.imageHeight;
+      var levels = markers.map(function(m) { return m.level; });
+      var minLv = Math.min.apply(null, levels);
+      var maxLv = Math.max.apply(null, levels);
+      document.getElementById('levelMin').min = minLv;
+      document.getElementById('levelMin').max = maxLv;
+      document.getElementById('levelMin').value = minLv;
+      document.getElementById('levelMax').min = minLv;
+      document.getElementById('levelMax').max = maxLv;
+      document.getElementById('levelMax').value = maxLv;
+      document.getElementById('levelMinLabel').textContent = 'Lv.' + minLv;
+      document.getElementById('levelMaxLabel').textContent = 'Lv.' + maxLv;
+      initMap();
+    })
+    .catch(function() {
+      initMap();  // 数据加载失败时仍显示空地图
+    });
+}
+
+loadDefaultData(mapConfig.name);
+</script>
+</body>
+</html>
