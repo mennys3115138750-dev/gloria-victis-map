@@ -83,14 +83,12 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
 .toolbar button:hover { background: #0f3460; }
 .toolbar button.export-btn { background: #e94560; border-color: #e94560; color: #fff; }
 
-/* 编辑模式提示 */
 .edit-hint {
   position: absolute; bottom: 10px; right: 10px; z-index: 1000;
   background: rgba(22,33,62,0.9); color: #7a7a8a; padding: 4px 10px;
   border-radius: 4px; font-size: 11px; pointer-events: none;
 }
 
-/* 添加/编辑表单弹窗 */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.6); z-index: 9999; display: flex;
@@ -117,7 +115,6 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
 .modal-box button.save-btn { background: #e94560; border-color: #e94560; color: #fff; }
 .modal-box .coord-readonly { font-size: 12px; color: #6a6a7a; margin-bottom: 12px; }
 
-/* 邮件菜单 */
 .context-menu {
   position: fixed; z-index: 9999; background: #16213e;
   border: 1px solid #0f3460; border-radius: 4px; padding: 4px 0;
@@ -130,7 +127,6 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
 .context-menu .menu-item:hover { background: #0f3460; }
 .context-menu .menu-item.danger { color: #e94560; }
 
-/* 弹窗内编辑/删除按钮 */
 .popup-actions { margin-top: 6px; display: flex; gap: 6px; }
 .popup-actions button {
   padding: 2px 10px; border-radius: 3px; border: 1px solid #0f3460;
@@ -145,11 +141,11 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
 <div class="toolbar">
   <span class="title">Gloria Victis 资源地图</span>
   <select id="mapSelect" onchange="switchMap(this.value)">
-    <option value="map1">map1 — 有路线</option>
-    <option value="map2">map2 — 无路线</option>
+    <option value="1">地图 1</option>
+    <option value="2">地图 2</option>
+    <option value="3">地图 3</option>
   </select>
   <span class="spacer"></span>
-  <button id="saveBtn" class="export-btn" onclick="saveToServer()">保存到服务器</button>
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
   <button onclick="document.getElementById('importFile').click()">导入 JSON</button>
   <button class="export-btn" onclick="exportJSON()">导出 JSON</button>
@@ -169,15 +165,15 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
     <h3>等级范围</h3>
     <div class="level-row">
       <span id="levelMinLabel">Lv.1</span>
-      <input type="range" id="levelMin" min="1" max="5" value="1" oninput="onLevelChange()">
+      <input type="range" id="levelMin" min="1" max="10" value="1" oninput="onLevelChange()">
     </div>
     <div class="level-row">
-      <span id="levelMaxLabel">Lv.3</span>
-      <input type="range" id="levelMax" min="1" max="5" value="3" oninput="onLevelChange()">
+      <span id="levelMaxLabel">Lv.10</span>
+      <input type="range" id="levelMax" min="1" max="10" value="10" oninput="onLevelChange()">
     </div>
   </div>
 
-<h3>标记列表 <span id="markerCount" style="color:#7a7a8a;font-weight:normal">(10)</span></h3>
+<h3>标记列表 <span id="markerCount" style="color:#7a7a8a;font-weight:normal">(0)</span></h3>
 <div class="marker-list" id="markerList"></div>
 </div>
   <div class="map-container">
@@ -186,9 +182,8 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
   </div>
 </div>
 
-<div class="statusbar" id="statusbar">共 10 个标记点 | 地图: map1</div>
+<div class="statusbar" id="statusbar">共 0 个标记点 | 地图: 1</div>
 
-<!-- 添加/编辑标记弹窗 -->
 <div class="modal-overlay hidden" id="markerModal">
   <div class="modal-box">
     <h2 id="modalTitle">添加标记</h2>
@@ -211,7 +206,6 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
   </div>
 </div>
 
-<!-- 右键菜单 -->
 <div class="context-menu hidden" id="contextMenu">
   <div class="menu-item" onclick="editMarkerFromMenu()">编辑</div>
   <div class="menu-item danger" onclick="deleteMarkerFromMenu()">删除</div>
@@ -220,27 +214,75 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; display: flex;
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ========== 数据 ==========
-var mapConfig = { name: 'map1', imageWidth: 943, imageHeight: 766 };
+var MAP_LIST = ['1', '2', '3'];
 
-var markers = [
-  { id: 'm1', x: 200, y: 150, type: 'herb', level: 1, label: '银叶草' },
-  { id: 'm2', x: 320, y: 600, type: 'ore', level: 3, label: '金矿' },
-  { id: 'm3', x: 512, y: 320, type: 'ore', level: 2, label: '铁矿' },
-  { id: 'm4', x: 600, y: 180, type: 'wood', level: 1, label: '松木' },
-  { id: 'm5', x: 680, y: 410, type: 'ore', level: 2, label: '铜矿' },
-  { id: 'm6', x: 750, y: 550, type: 'wood', level: 2, label: '橡木' },
-  { id: 'm7', x: 410, y: 280, type: 'herb', level: 3, label: '金棘草' },
-  { id: 'm8', x: 880, y: 700, type: 'ore', level: 1, label: '铜矿' },
-  { id: 'm9', x: 100, y: 400, type: 'herb', level: 2, label: '魔皇草' },
-  { id: 'm10', x: 500, y: 500, type: 'wood', level: 3, label: '铁木' }
-];
+// 每张地图独立配置（尺寸与 map/ 下的实际图片一致）
+var mapConfigs = {
+  '1': { imageWidth: 1482, imageHeight: 783 },
+  '2': { imageWidth: 768,  imageHeight: 848 },
+  '3': { imageWidth: 841,  imageHeight: 815 }
+};
+
+var currentMapId = '1';
+var allMapMarkers = {};
+MAP_LIST.forEach(function(id) { allMapMarkers[id] = []; });
+var markers = allMapMarkers['1'];
 
 var TYPE_COLORS = { ore: '#ff6b35', herb: '#4caf50', wood: '#8d6e63' };
 var TYPE_NAMES = { ore: '矿石', herb: '草药', wood: '木材' };
 
 var mapInstance = null;
 var markerLayer = null;
-var allLayers = {};  // id -> L.marker 映射
+var allLayers = {};
+
+function getStorageKey(mapId) {
+  return 'gv_markers_' + mapId;
+}
+
+function saveToStorage(mapId) {
+  var arr = allMapMarkers[mapId];
+  if (!arr) return;
+  try {
+    localStorage.setItem(getStorageKey(mapId), JSON.stringify(arr));
+  } catch(e) {}
+}
+
+// 始终修改数组内容而非替换引用，保持 markers 指针有效
+function loadMarkersForMap(mapId, callback) {
+  var arr = allMapMarkers[mapId];
+
+  // 先 localStorage
+  try {
+    var stored = localStorage.getItem(getStorageKey(mapId));
+    if (stored) {
+      var parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        arr.length = 0;
+        parsed.forEach(function(m) { arr.push(m); });
+        callback();
+        return;
+      }
+    }
+  } catch(e) {}
+
+  // 再 JSON 文件
+  fetch('data/markers_' + mapId + '.json')
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function(data) {
+      if (data.markers && Array.isArray(data.markers)) {
+        arr.length = 0;
+        data.markers.forEach(function(m) { arr.push(m); });
+      }
+      if (data.imageWidth)  mapConfigs[mapId].imageWidth  = data.imageWidth;
+      if (data.imageHeight) mapConfigs[mapId].imageHeight = data.imageHeight;
+      saveToStorage(mapId);
+      callback();
+    })
+    .catch(function() { callback(); });
+}
 
 function escapeHtml(str) {
   var div = document.createElement('div');
@@ -248,7 +290,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ========== 标记点创建与渲染 ==========
+// ========== 标记渲染 ==========
 function createIcon(type) {
   var validTypes = ['ore', 'herb', 'wood'];
   if (validTypes.indexOf(type) === -1) type = 'ore';
@@ -280,7 +322,6 @@ function renderMarkers(filteredList) {
         '</div>'
       );
 
-    // 右键菜单
     marker.on('contextmenu', function(e) {
       L.DomEvent.preventDefault(e);
       showContextMenu(m.id, e.originalEvent.clientX, e.originalEvent.clientY);
@@ -290,7 +331,6 @@ function renderMarkers(filteredList) {
     allLayers[m.id] = marker;
   });
 
-  // 更新标记列表
   var listEl = document.getElementById('markerList');
   listEl.innerHTML = '';
   list.forEach(function(m) {
@@ -315,10 +355,9 @@ function renderMarkers(filteredList) {
     listEl.appendChild(emptyDiv);
   }
 
-  // 更新计数和状态栏
   document.getElementById('markerCount').textContent = '(' + list.length + ')';
   document.getElementById('statusbar').textContent =
-    '共 ' + list.length + ' 个标记点 | 地图: ' + mapConfig.name;
+    '共 ' + list.length + ' 个标记点 | 地图: ' + currentMapId;
 }
 
 // ========== 筛选 ==========
@@ -352,76 +391,32 @@ function onLevelChange() {
   applyFilters();
 }
 
-// ========== 云端保存配置 ==========
-// 部署 Worker 后，将下方 URL 替换为你的 Worker 地址
-var SAVE_API_URL = '/api/save';
-
-// ========== 保存到服务器 ==========
-function saveToServer() {
-  var btn = document.getElementById('saveBtn');
-  var originalText = btn.textContent;
-  btn.textContent = '保存中...';
-  btn.disabled = true;
-
-  var payload = {
-    imageWidth: mapConfig.imageWidth,
-    imageHeight: mapConfig.imageHeight,
-    markers: markers
-  };
-
-  fetch(SAVE_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-  .then(function(res) {
-    if (!res.ok) {
-      return res.json().then(function(err) {
-        throw new Error(err.message || 'HTTP ' + res.status);
-      });
-    }
-    return res.json();
-  })
-  .then(function(result) {
-    btn.textContent = '✓ 已保存';
-    btn.style.background = '#4caf50';
-    console.log('保存成功', result.commit);
-    setTimeout(function() {
-      btn.textContent = originalText;
-      btn.disabled = false;
-      btn.style.background = '';
-    }, 2000);
-  })
-  .catch(function(err) {
-    btn.textContent = '保存失败';
-    btn.style.background = '#e94560';
-    btn.disabled = false;
-    console.error('保存失败:', err.message);
-    alert('保存失败: ' + err.message);
-    setTimeout(function() {
-      btn.textContent = originalText;
-      btn.style.background = '';
-    }, 3000);
-  });
+function resetLevelSliders() {
+  var levels = markers.map(function(m) { return m.level; });
+  var minLv = levels.length ? Math.min.apply(null, levels) : 1;
+  var maxLv = levels.length ? Math.max.apply(null, levels) : 10;
+  document.getElementById('levelMin').value = minLv;
+  document.getElementById('levelMax').value = maxLv;
+  onLevelChange();
 }
 
-// ========== 导出 ==========
+// ========== 导出 / 导入 ==========
 function exportJSON() {
   var data = {
-    imageWidth: mapConfig.imageWidth,
-    imageHeight: mapConfig.imageHeight,
+    mapId: currentMapId,
+    imageWidth: mapConfigs[currentMapId].imageWidth,
+    imageHeight: mapConfigs[currentMapId].imageHeight,
     markers: markers
   };
   var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'markers.json';
+  a.download = 'markers_map' + currentMapId + '.json';
   a.click();
   URL.revokeObjectURL(url);
 }
 
-// ========== 导入 ==========
 function handleImport(event) {
   var file = event.target.files[0];
   if (!file) return;
@@ -430,7 +425,8 @@ function handleImport(event) {
     try {
       var data = JSON.parse(e.target.result);
       if (!data.markers || !Array.isArray(data.markers)) throw new Error('缺少 markers 数组');
-      markers = data.markers.filter(function(m, i) {
+      markers.length = 0;
+      data.markers.filter(function(m) {
         return m && typeof m.x === 'number' && typeof m.y === 'number' &&
                ['ore', 'herb', 'wood'].indexOf(m.type) !== -1 &&
                typeof m.level === 'number' && m.level >= 1 &&
@@ -438,13 +434,9 @@ function handleImport(event) {
       }).map(function(m, i) {
         if (!m.id) m.id = 'imp_' + Date.now() + '_' + i;
         return m;
-      });
-      var levels = markers.map(function(m) { return m.level; });
-      var minLv = Math.min.apply(null, levels);
-      document.getElementById('levelMin').value = minLv;
-      document.getElementById('levelMax').value = document.getElementById('levelMax').max;
-      document.getElementById('levelMinLabel').textContent = 'Lv.' + minLv;
-      document.getElementById('levelMaxLabel').textContent = 'Lv.' + document.getElementById('levelMax').max;
+      }).forEach(function(m) { markers.push(m); });
+      saveToStorage(currentMapId);
+      resetLevelSliders();
       applyFilters();
     } catch (err) {
       alert('文件格式不正确：' + err.message);
@@ -455,47 +447,73 @@ function handleImport(event) {
 }
 
 // ========== 地图切换 ==========
-function switchMap(mapName) {
-  mapConfig.name = mapName;
-  // 只更换底图，不触碰标记数据
+function switchMap(mapId) {
+  if (mapId === currentMapId) return;
+  saveToStorage(currentMapId);
+  currentMapId = mapId;
+  markers = allMapMarkers[mapId];
+
+  if (markers.length === 0) {
+    loadMarkersForMap(mapId, function() {
+      markers = allMapMarkers[mapId];
+      doSwitch();
+    });
+  } else {
+    doSwitch();
+  }
+}
+
+function getImageUrl(mapId) {
+  return 'map/map' + mapId + '.jpg';
+}
+
+function doSwitch() {
+  var cfg = mapConfigs[currentMapId];
+  var bounds = [[0, 0], [cfg.imageHeight, cfg.imageWidth]];
+
   mapInstance.eachLayer(function(layer) {
     if (layer instanceof L.ImageOverlay) mapInstance.removeLayer(layer);
   });
-  var bounds = [[0, 0], [mapConfig.imageHeight, mapConfig.imageWidth]];
-  L.imageOverlay(mapConfig.name + '.jpg', bounds).addTo(mapInstance);
-  document.getElementById('statusbar').textContent =
-    '共 ' + markers.length + ' 个标记点 | 地图: ' + mapConfig.name;
+  L.imageOverlay(getImageUrl(currentMapId), bounds).addTo(mapInstance);
+  mapInstance.setMaxBounds(bounds);
+  mapInstance.fitBounds(bounds);
+
+  resetLevelSliders();
+  applyFilters();
 }
 
 // ========== 地图初始化 ==========
 function initMap() {
+  var cfg = mapConfigs[currentMapId];
+  var bounds = [[0, 0], [cfg.imageHeight, cfg.imageWidth]];
+
   mapInstance = L.map('map', {
     crs: L.CRS.Simple,
-    maxZoom: 5,
-    minZoom: -2,
+    maxZoom: 4,
+    minZoom: -3,
     zoomSnap: 0.5,
     zoomDelta: 0.5,
     attributionControl: false,
-    doubleClickZoom: false
+    doubleClickZoom: false,
+    maxBounds: bounds,
+    maxBoundsViscosity: 1.0
   });
 
-  var bounds = [[0, 0], [mapConfig.imageHeight, mapConfig.imageWidth]];
-  L.imageOverlay(mapConfig.name + '.jpg', bounds).addTo(mapInstance);
+  L.imageOverlay(getImageUrl(currentMapId), bounds).addTo(mapInstance);
   mapInstance.fitBounds(bounds);
   markerLayer = L.layerGroup().addTo(mapInstance);
 
-  // 双击地图空白处添加标记
   mapInstance.on('dblclick', function(e) {
     var latlng = e.latlng;
     openAddModal(Math.round(latlng.lng), Math.round(latlng.lat));
   });
 
-  // 左键点击空白处关闭菜单
   mapInstance.on('click', function() {
     hideContextMenu();
   });
 
-  renderMarkers();
+  resetLevelSliders();
+  applyFilters();
 }
 
 // ========== 编辑功能 ==========
@@ -548,7 +566,6 @@ function saveMarker() {
   if (!label) { alert('请输入名称'); return; }
 
   if (editId) {
-    // 编辑现有标记
     for (var i = 0; i < markers.length; i++) {
       if (markers[i].id === editId) {
         markers[i].label = label;
@@ -558,7 +575,6 @@ function saveMarker() {
       }
     }
   } else {
-    // 添加新标记
     var newId = 'm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
     markers.push({
       id: newId, x: x, y: y, type: type, level: level, label: label
@@ -566,13 +582,17 @@ function saveMarker() {
   }
 
   closeModal();
+  saveToStorage(currentMapId);
   applyFilters();
 }
 
 function deleteMarker(id) {
   if (!confirm('确定删除此标记吗？')) return;
   mapInstance.closePopup();
-  markers = markers.filter(function(m) { return m.id !== id; });
+  for (var i = markers.length - 1; i >= 0; i--) {
+    if (markers[i].id === id) { markers.splice(i, 1); break; }
+  }
+  saveToStorage(currentMapId);
   applyFilters();
 }
 
@@ -600,12 +620,10 @@ function deleteMarkerFromMenu() {
   hideContextMenu();
 }
 
-// 全局点击关闭右键菜单
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.context-menu')) hideContextMenu();
 });
 
-// 回车保存，Esc 取消
 document.addEventListener('keydown', function(e) {
   var modal = document.getElementById('markerModal');
   if (modal.classList.contains('hidden')) return;
@@ -614,33 +632,21 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ========== 启动 ==========
-function loadDefaultData() {
-  fetch('data/markers.json')
-    .then(function(res) {
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
-    })
-    .then(function(data) {
-      if (data.markers && Array.isArray(data.markers)) {
-        markers = data.markers;
-      }
-      if (data.imageWidth) mapConfig.imageWidth = data.imageWidth;
-      if (data.imageHeight) mapConfig.imageHeight = data.imageHeight;
-      var levels = markers.map(function(m) { return m.level; });
-      var minLv = Math.min.apply(null, levels);
-      // 下限取数据最小值，上限取滑块最大范围（方便后续创建更高等级标记）
-      document.getElementById('levelMin').value = minLv;
-      document.getElementById('levelMax').value = document.getElementById('levelMax').max;
-      document.getElementById('levelMinLabel').textContent = 'Lv.' + minLv;
-      document.getElementById('levelMaxLabel').textContent = 'Lv.' + document.getElementById('levelMax').max;
+function init() {
+  var loaded = 0;
+  function checkDone() {
+    loaded++;
+    if (loaded >= MAP_LIST.length) {
+      markers = allMapMarkers[currentMapId];
       initMap();
-    })
-    .catch(function() {
-      initMap();
-    });
+    }
+  }
+  MAP_LIST.forEach(function(mapId) {
+    loadMarkersForMap(mapId, checkDone);
+  });
 }
 
-loadDefaultData();
+init();
 </script>
 </body>
 </html>

@@ -1,0 +1,9 @@
+{
+  "imageWidth": 768,
+  "imageHeight": 848,
+  "markers": [
+    { "id": "m1", "x": 200, "y": 250, "type": "ore", "level": 2, "label": "铜矿" },
+    { "id": "m2", "x": 400, "y": 400, "type": "herb", "level": 3, "label": "金棘草" },
+    { "id": "m3", "x": 550, "y": 600, "type": "wood", "level": 2, "label": "橡木" }
+  ]
+}
